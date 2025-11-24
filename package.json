@@ -1,0 +1,15 @@
+{
+  "name": "pixelmetrics-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd server && npm install && cd ../dashboard-user-cra && npm install && cd ../dashboard-admin && npm install",
+    "start": "concurrently \"npm run server\" \"npm run user\" \"npm run admin\"",
+    "server": "cd server && npm start",
+    "user": "cd dashboard-user-cra && npm start",
+    "admin": "cd dashboard-admin && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
