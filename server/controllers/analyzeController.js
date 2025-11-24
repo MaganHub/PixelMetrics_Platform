@@ -1,5 +1,6 @@
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { createClient } = require('@supabase/supabase-js');
+const fetch = require('node-fetch');
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -9,13 +10,12 @@ const supabase = (supabaseUrl && supabaseServiceRoleKey)
     ? createClient(supabaseUrl, supabaseServiceRoleKey)
     : null;
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || 'dummy-key', // Prevent crash if key is missing
-});
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy-key');
 
 exports.analyzeImage = async (req, res) => {
     try {
-        const { imageUrl, userId } = req.body; // Expect userId from frontend if available
+        const { imageUrl, userId } = req.body;
 
         if (!imageUrl) {
             return res.status(400).json({ error: 'Image URL is required' });
@@ -26,7 +26,7 @@ exports.analyzeImage = async (req, res) => {
         let result;
 
         // Fallback for development without API key
-        if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_api_key') {
+        if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
             console.log('Using mock response (no API key provided)');
             result = {
                 scores: {
@@ -35,52 +35,55 @@ exports.analyzeImage = async (req, res) => {
                     accessibility: 9,
                     overall: 8
                 },
-                feedback: "This is a mock analysis response. To get real AI insights, please configure your OPENAI_API_KEY in the server .env file.\n\nThe layout is clean and the contrast is good. Consider increasing the padding around the primary button.",
+                feedback: "This is a mock analysis response. To get real AI insights, please configure your GEMINI_API_KEY in the server .env file.\n\nThe layout is clean and the contrast is good. Consider increasing the padding around the primary button.",
                 boundingBoxes: [
                     { x: 50, y: 100, width: 200, height: 50, label: "Primary Button", type: "button" },
                     { x: 20, y: 20, width: 100, height: 100, label: "Logo", type: "image" }
                 ]
             };
         } else {
-            const response = await openai.chat.completions.create({
-                model: "gpt-4o",
-                messages: [
-                    {
-                        role: "system",
-                        content: `You are an expert UX/UI designer and accessibility specialist. 
-              Analyze the provided screenshot and return a JSON object with the following structure:
-              {
-                "scores": {
-                  "usability": number (1-10),
-                  "design": number (1-10),
-                  "accessibility": number (1-10),
-                  "overall": number (1-10)
-                },
-                "feedback": "Detailed text feedback mentioning strengths and improvements",
-                "boundingBoxes": [
-                  { "x": number, "y": number, "width": number, "height": number, "label": "string", "type": "string" }
-                ]
-              }
-              For bounding boxes, identify key UI elements (buttons, inputs, headers) with their approximate coordinates (0-100 scale for percentage of width/height).`
-                    },
-                    {
-                        role: "user",
-                        content: [
-                            { type: "text", text: "Analyze this UI screenshot." },
-                            {
-                                type: "image_url",
-                                image_url: {
-                                    "url": imageUrl,
-                                },
-                            },
-                        ],
-                    },
-                ],
-                response_format: { type: "json_object" },
-                max_tokens: 1500,
-            });
+            // Fetch image and convert to base64
+            const imageResp = await fetch(imageUrl);
+            if (!imageResp.ok) throw new Error(`Failed to fetch image: ${imageResp.statusText}`);
+            const imageBuffer = await imageResp.buffer();
+            const base64Image = imageBuffer.toString('base64');
+            const mimeType = imageResp.headers.get('content-type') || 'image/jpeg';
 
-            result = JSON.parse(response.choices[0].message.content);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+            const prompt = `You are an expert UX/UI designer and accessibility specialist. 
+            Analyze the provided screenshot and return a JSON object with the following structure:
+            {
+              "scores": {
+                "usability": number (1-10),
+                "design": number (1-10),
+                "accessibility": number (1-10),
+                "overall": number (1-10)
+              },
+              "feedback": "Detailed text feedback mentioning strengths and improvements",
+              "boundingBoxes": [
+                { "x": number, "y": number, "width": number, "height": number, "label": "string", "type": "string" }
+              ]
+            }
+            For bounding boxes, identify key UI elements (buttons, inputs, headers) with their approximate coordinates (0-100 scale for percentage of width/height).
+            IMPORTANT: Return ONLY the JSON object, no markdown formatting or backticks.`;
+
+            const resultPart = await model.generateContent([
+                prompt,
+                {
+                    inlineData: {
+                        data: base64Image,
+                        mimeType: mimeType
+                    }
+                }
+            ]);
+
+            const response = await resultPart.response;
+            const text = response.text();
+
+            // Clean up markdown if present
+            const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            result = JSON.parse(jsonStr);
         }
 
         // Save to Supabase if configured and userId is present
