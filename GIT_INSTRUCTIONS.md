@@ -30,7 +30,7 @@ git branch -M main
 
 # 5. Add your GitHub repository as the 'origin' remote
 # REPLACE THE URL BELOW with the one you copied from GitHub
-git remote add origin https://github.com/YOUR_USERNAME/pixelmetrics-platform.git
+
 
 # 6. Push your code
 git push -u origin main
