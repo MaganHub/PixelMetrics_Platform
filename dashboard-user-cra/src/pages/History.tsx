@@ -11,7 +11,7 @@ export default function History() {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                const response = await fetch('http://localhost:3001/api/history');
+                const response = await fetch(`${process.env.REACT_APP_API_URL}/api/history`);
                 if (!response.ok) throw new Error('Failed to fetch history');
                 const data = await response.json();
 

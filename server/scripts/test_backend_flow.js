@@ -34,7 +34,7 @@ async function testBackendFlow() {
         formData.append('screenshot', fs.createReadStream(testFilePath));
 
         console.log('Uploading image...');
-        const uploadRes = await fetch('http://localhost:3001/api/upload', {
+        const uploadRes = await fetch(`${process.env.REACT_APP_API_URL}/api/upload`, {
             method: 'POST',
             body: formData
         });
@@ -49,7 +49,7 @@ async function testBackendFlow() {
 
         // 3. Analyze Image
         console.log('Analyzing image...');
-        const analyzeRes = await fetch('http://localhost:3001/api/analyze', {
+        const analyzeRes = await fetch(`${process.env.REACT_APP_API_URL}/api/analyze`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

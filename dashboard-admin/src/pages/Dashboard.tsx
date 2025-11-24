@@ -21,8 +21,8 @@ export default function Dashboard() {
                 };
 
                 const [statsRes, activityRes] = await Promise.all([
-                    fetch('http://localhost:3001/api/admin/stats', { headers }),
-                    fetch('http://localhost:3001/api/admin/activity', { headers })
+                    fetch(`${process.env.REACT_APP_API_URL}/api/admin/stats`, { headers }),
+                    fetch(`${process.env.REACT_APP_API_URL}/api/admin/activity`, { headers })
                 ]);
 
                 if (statsRes.ok) {

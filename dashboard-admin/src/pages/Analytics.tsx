@@ -32,7 +32,7 @@ export default function Analytics() {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const res = await fetch('http://localhost:3001/api/admin/analytics', {
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/analytics`, {
                     headers: {
                         'Authorization': `Bearer ${session?.access_token}`
                     }

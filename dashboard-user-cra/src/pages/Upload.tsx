@@ -58,7 +58,7 @@ export default function Upload() {
             const formData = new FormData();
             formData.append('screenshot', file);
 
-            const uploadRes = await fetch('http://localhost:3001/api/upload', {
+            const uploadRes = await fetch(`${process.env.REACT_APP_API_URL}/api/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -71,7 +71,7 @@ export default function Upload() {
             console.log('Image uploaded:', imageUrl);
 
             // 2. Analyze Image
-            const analyzeRes = await fetch('http://localhost:3001/api/analyze', {
+            const analyzeRes = await fetch(`${process.env.REACT_APP_API_URL}/api/analyze`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
